@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pickyourtrail | Referral Trail — HR Analytics</title>
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <img src="logo.png" alt="Pickyourtrail" class="brand-logo">
+      <div class="brand-text">
+        <span class="brand-title">Referral Trail</span>
+        <span class="brand-sub">HR Referral Analytics</span>
+      </div>
+    </div>
+    <nav class="tabs" id="mainTabs">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="table">Referrals</button>
+      <button class="tab" data-tab="search">Find Employee</button>
+      <button class="tab" data-tab="admin">Admin</button>
+    </nav>
+    <div class="topbar-right">
+      <span class="sync-pill" id="syncPill"><span class="dot" id="syncDot"></span><span id="syncText">Connecting…</span></span>
+      <button class="icon-btn" id="refreshBtn" title="Refresh now">↻</button>
+    </div>
+  </div>
+  <div class="route-line" aria-hidden="true"></div>
+</header>
+
+<main class="shell">
+
+  <!-- ============ OVERVIEW TAB ============ -->
+  <section class="view active" id="view-overview">
+
+    <div class="section-head">
+      <h1>Referral journey, at a glance</h1>
+      <p>Every checkpoint on the way from referral to hire, pulled live from the Referral Sheet.</p>
+      <div class="filter-row">
+        <select id="filterMonth" class="chip-select"><option value="">All months</option></select>
+        <select id="filterPosition" class="chip-select"><option value="">All positions</option></select>
+        <select id="filterStatus" class="chip-select"><option value="">All statuses</option></select>
+      </div>
+    </div>
+
+    <div class="kpi-grid" id="kpiGrid"></div>
+
+    <div class="panel-grid">
+      <div class="panel">
+        <div class="panel-head"><h3>Monthly Referral Trend</h3></div>
+        <div class="chart-wrap"><canvas id="chartTrend"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Status Distribution</h3></div>
+        <div class="chart-wrap"><canvas id="chartStatus"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Position-wise Referrals</h3></div>
+        <div class="chart-wrap"><canvas id="chartPosition"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Referral Bonus Distribution</h3></div>
+        <div class="chart-wrap"><canvas id="chartBonus"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-head small">
+      <h2>Monthly Hall of Fame</h2>
+      <p>Auto-updates the moment status or bonus data changes.</p>
+    </div>
+    <div class="hof-grid" id="hofGrid"></div>
+
+    <div class="section-head small">
+      <h2>Leaderboards</h2>
+    </div>
+    <div class="board-grid">
+      <div class="panel">
+        <div class="panel-head"><h3>Top Referrers</h3><span class="tag">by volume</span></div>
+        <ol class="leaderboard" id="lbTop"></ol>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Highest Bonus Earned</h3><span class="tag">₹ total</span></div>
+        <ol class="leaderboard" id="lbBonus"></ol>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Most Successful Referrers</h3><span class="tag">selected hires</span></div>
+        <ol class="leaderboard" id="lbSuccess"></ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TABLE TAB ============ -->
+  <section class="view" id="view-table">
+    <div class="section-head">
+      <h1>Live Referral Table</h1>
+      <p>Search, filter, sort, export — updated straight from the sheet.</p>
+    </div>
+
+    <div class="table-toolbar">
+      <input type="text" id="tableSearch" class="search-input" placeholder="Search candidate, employee, position…">
+      <div class="toolbar-actions">
+        <button class="btn ghost" id="exportCsvBtn">Export CSV</button>
+        <button class="btn ghost" id="exportPdfBtn">Export PDF</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table" id="referralTable">
+        <thead>
+          <tr>
+            <th data-key="timestamp">Date</th>
+            <th data-key="employee">Employee</th>
+            <th data-key="candidate">Candidate</th>
+            <th data-key="position">Position</th>
+            <th data-key="status">Status</th>
+            <th data-key="bonusEligibility">Bonus Eligibility</th>
+            <th data-key="bonusAmount">Bonus Amount</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="pagination" id="pagination"></div>
+  </section>
+
+  <!-- ============ EMPLOYEE SEARCH TAB ============ -->
+  <section class="view" id="view-search">
+    <div class="section-head">
+      <h1>Find an Employee</h1>
+      <p>Look up anyone's referral trail — every stop, from submission to bonus.</p>
+    </div>
+
+    <div class="employee-search-box">
+      <input type="text" id="employeeSearchInput" class="search-input large" placeholder="Type an employee name…" list="employeeList">
+      <datalist id="employeeList"></datalist>
+    </div>
+
+    <div id="employeeResult" class="employee-result hidden">
+      <div class="employee-kpis" id="employeeKpis"></div>
+      <div class="panel">
+        <div class="panel-head"><h3>Referral History</h3></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Date</th><th>Candidate</th><th>Position</th><th>Status</th><th>Bonus Eligibility</th><th>Bonus Amount</th></tr></thead>
+            <tbody id="employeeHistoryBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <p class="empty-hint" id="employeeEmptyHint">Start typing a name above to see their full referral trail.</p>
+  </section>
+
+  <!-- ============ ADMIN TAB ============ -->
+  <section class="view" id="view-admin">
+    <div class="section-head">
+      <h1>Admin Panel</h1>
+      <p>Role-based access — status updates, bonus tracking, and audit history.</p>
+    </div>
+
+    <div id="adminLoginBox" class="admin-login">
+      <div class="panel narrow">
+        <div class="panel-head"><h3>Administrator Login</h3></div>
+        <p class="muted">Enter the admin password to manage referrals. Viewers without this password only see analytics.</p>
+        <input type="password" id="adminPassword" class="search-input" placeholder="Admin password">
+        <button class="btn primary full" id="adminLoginBtn">Unlock Admin Panel</button>
+        <p class="error-text" id="adminLoginError"></p>
+      </div>
+    </div>
+
+    <div id="adminPanel" class="hidden">
+      <div class="admin-toolbar">
+        <input type="text" id="adminSearch" class="search-input" placeholder="Search referrals to manage…">
+        <div class="toolbar-actions">
+          <button class="btn ghost" id="adminBulkBtn">Bulk Update Selected</button>
+          <button class="btn ghost" id="adminExportBtn">Download Filtered (CSV)</button>
+          <button class="btn ghost" id="adminAuditBtn">View Audit Trail</button>
+          <button class="btn subtle" id="adminLogoutBtn">Log out</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table" id="adminTable">
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="adminSelectAll"></th>
+              <th>Date</th><th>Employee</th><th>Candidate</th><th>Position</th>
+              <th>Status</th><th>Bonus Eligible</th><th>Bonus Amount</th><th>Last Updated</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="adminTableBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="adminPagination"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ EDIT MODAL ============ -->
+<div class="modal-backdrop hidden" id="editModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Update Referral</h3>
+      <button class="icon-btn" id="closeModalBtn">✕</button>
+    </div>
+    <div class="modal-body" id="editModalBody"></div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="cancelEditBtn">Cancel</button>
+      <button class="btn primary" id="saveEditBtn">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CONFIRM MODAL ============ -->
+<div class="modal-backdrop hidden" id="confirmModal">
+  <div class="modal small">
+    <div class="modal-head"><h3>Confirm Changes</h3></div>
+    <div class="modal-body"><p id="confirmModalText">Save this update?</p></div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="confirmCancelBtn">Cancel</button>
+      <button class="btn primary" id="confirmSaveBtn">Yes, Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
